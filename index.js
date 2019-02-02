@@ -17,29 +17,54 @@
 *
 */
 
-const grid = [];
 const GRID_LENGTH = 3;
 const COMPUTER_THINKING_TIME = 100;
-const players = {'X': 1,'O': 2};
+const RESULT_TIE = 3;
+
+let gamer = 'X';
+let computer = 'O';
+const playerNumbers = {'X': 1, 'O': 2};
+const firstPlayer = 'X';
+
 const turn = {
-    value: 'X',
+    value: gamer,
     get text() {
         return this.value;
     },
-    set text(turntext) {
-        this.value = turntext;
-        turnChanged(turntext);
+    set text(playerName) {
+        this.value = playerName;
+        turnChangeHandler(playerName);
     }
 };
-const emptyBoxes = [];
+const grid = [];
+const uncheckedBoxes = [];
+
+const criticalPaths = [
+  [0,1,2],
+  [3,4,5],
+  [6,7,8],
+  [0,3,6],
+  [1,4,7],
+  [2,5,8],
+  [0,4,8],
+  [2,4,6]
+];
+
+// elements
 const overlay = document.getElementById('overlay');
+const info = document.getElementById('message');
+const griddiv = document.getElementById('grid');
+const playerselect = document.getElementById('choosePlayerSelect');
+const restartBtn = document.getElementById('restartGame');
 
 function initializeGrid() {
+    grid.length = 0;
+    uncheckedBoxes.length = 0;
     for (let colIdx = 0;colIdx < GRID_LENGTH; colIdx++) {
         const tempArray = [];
         for (let rowidx = 0; rowidx < GRID_LENGTH;rowidx++) {
             tempArray.push(0);
-            emptyBoxes.push(rowidx * GRID_LENGTH + colIdx);
+            uncheckedBoxes.push(rowidx * GRID_LENGTH + colIdx);
         }
         grid.push(tempArray);
     }
@@ -79,62 +104,68 @@ function getColumns() {
 }
 
 function renderMainGrid() {
-    const parent = document.getElementById("grid");
     const columnDivs = getColumns();
-    parent.innerHTML = '<div class="columnsStyle">' + columnDivs + '</div>';
+    griddiv.innerHTML = '<div class="columnsStyle">' + columnDivs + '</div>';
 }
 
 function onBoxClick() {
     var rowIdx = this.getAttribute("rowIdx");
     var colIdx = this.getAttribute("colIdx");
-    let newValue = players[turn.text];
-    grid[colIdx][rowIdx] = newValue;
+    grid[colIdx][rowIdx] = playerNumbers[turn.text];
     renderMainGrid();
     addClickHandlers();
     markBoxChecked(rowIdx, colIdx);
-    let w = checkForWinner();
-    if(w) {
-        overlay.style.display = 'block';
-        declareWinner(w);
+    let result = checkForResult();
+    if(result > 0) {
+        if(result == RESULT_TIE) {
+            declareTie();
+        } else {
+            declareWinner(result);
+        }
         return;
     }
-    turnNextPlayer();
+
+    let nextPlayer = (turn.text == 'X' ? 'O' : 'X');
+    setNextPlayer(nextPlayer);
 }
 
 function addClickHandlers() {
     var boxes = document.getElementsByClassName("box");
     for (var idx = 0; idx < boxes.length; idx++) {
-        boxes[idx].addEventListener('click', onBoxClick, false);
+        if(boxes[idx].textContent.trim() == "") {
+            boxes[idx].addEventListener('click', onBoxClick, false);
+        }
     }
-}
-
-function turnNextPlayer() {
-    turn.text = (turn.text == 'X' ? 'O' : 'X');
 }
 
 function markBoxChecked(rowId, colId) {
     let boxValue = parseInt(colId) * GRID_LENGTH + parseInt(rowId);
-    const markedBoxIndex = emptyBoxes.indexOf(boxValue);
-    emptyBoxes.splice(markedBoxIndex, 1);
-    console.log(emptyBoxes);
+    const markedBoxIndex = uncheckedBoxes.indexOf(boxValue);
+    uncheckedBoxes.splice(markedBoxIndex, 1);
 }
 
-function turnChanged(curTurn) {
-    if(curTurn == 'O') {
+function turnChangeHandler(curTurn) {
+    if(curTurn == computer) {
         overlay.style.display = 'block';
-        if(emptyBoxes.length == 0) return;
-        let thinkingTime = COMPUTER_THINKING_TIME;
-        const randomBox = Math.floor(Math.random() * emptyBoxes.length);
+        var criticalBox = findCriticalBox(computer);
+        if(!criticalBox) {
+            criticalBox = findCriticalBox(gamer);
+        }
+        if(!criticalBox) {
+            var randomBoxNumber = Math.floor(Math.random() * uncheckedBoxes.length);
+            criticalBox = uncheckedBoxes[randomBoxNumber];
+        }
+
         setTimeout(function() {
             let boxes = document.getElementsByClassName("box");
-            boxes[emptyBoxes[randomBox]].click();
-        },thinkingTime);
+            boxes[criticalBox].click();
+        },COMPUTER_THINKING_TIME);
     } else {
         overlay.style.display = 'none';
     }
 }
 
-function checkForWinner() {
+function checkForResult() {
     let i, j;
     for (i = 0;i < GRID_LENGTH; i++) {
         let score = 0;
@@ -176,13 +207,95 @@ function checkForWinner() {
         return grid[0][GRID_LENGTH-1];
     }
 
-    return false;
+    if(uncheckedBoxes.length == 0) {
+        return RESULT_TIE;
+    };
+
+    return 0;
 }
 
 function declareWinner(w) {
-    document.getElementById('message').textContent = "Winner: " + (w == players['X'] ? 'X' : 'O');
+    let winner = (w == playerNumbers[gamer] ? gamer : computer);
+    info.innerHTML = '<span class="win">Winner: '+ winner +'</span>';
+    overlay.style.display = 'block';
 }
 
-initializeGrid();
-renderMainGrid();
-addClickHandlers();
+function declareTie() {
+    info.innerHTML = '<span class="tie">Match Tied</span>';
+    overlay.style.display = 'block';
+}
+
+function turnNextPlayer() {
+    turn.text = (turn.text == gamer ? computer : gamer);
+}
+
+function setNextPlayer(player) {
+    info.textContent = "Next turn: " + player;
+    turn.text = player;
+}
+
+function highlightPlayerSelectBox() {
+    playerselect.classList.add('error');
+    setTimeout(function() {
+        playerselect.classList.remove('error');
+    }, 200);
+}
+
+function restartGame() {
+    initializeGrid();
+    renderMainGrid();
+    info.innerHTML = '&nbsp;';
+    this.classList.add('hidden');
+    playerselect.classList.remove('hidden');
+    playerselect.selectedIndex = 0;
+    griddiv.addEventListener('click', highlightPlayerSelectBox);
+    overlay.style.display = 'none';
+}
+
+function playerSelectChange() {
+    gamer = (this.value  == 'X' ? 'X' : 'O');
+    computer = (gamer  == 'X' ? 'O' : 'X');
+    addClickHandlers();
+    setNextPlayer(firstPlayer);
+    this.classList.add('hidden');
+    restartBtn.classList.remove('hidden');
+    griddiv.removeEventListener('click', highlightPlayerSelectBox);
+}
+
+function startGame() {
+    initializeGrid();
+    renderMainGrid();
+    griddiv.addEventListener('click', highlightPlayerSelectBox);
+    playerselect.addEventListener('change', playerSelectChange);
+    restartBtn.addEventListener('click', restartGame);
+}
+
+function getPlayerBoxes(player) {
+    var playerBoxes = [];
+    var boxes = document.getElementsByClassName("box");
+    for (var idx = 0; idx < boxes.length; idx++) {
+        if(boxes[idx].textContent == player) {
+            playerBoxes.push(idx);
+        }
+    }
+
+    return playerBoxes;
+}
+
+function findCriticalBox(player) {
+    let playerBoxes = getPlayerBoxes(player);
+    for(var i in criticalPaths) {
+        let winningpath = arraydiff(criticalPaths[i], playerBoxes);
+        if(winningpath.length != 1) continue;
+
+        if(uncheckedBoxes.indexOf(winningpath[0]) !== -1) {
+            return winningpath[0];
+        }
+    }
+}
+
+function arraydiff(array1, array2) {
+    return array1.filter(x => array2.indexOf(x) == -1);
+}
+
+startGame();

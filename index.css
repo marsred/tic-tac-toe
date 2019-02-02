@@ -42,7 +42,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 70px;
+    margin-bottom: 50px;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    height: 20px;
 }
 
 .cross{
@@ -50,11 +58,11 @@
     font-size: 2.5em;
     border-radius: 5px;
     line-height: 100px;
+    font-family: arial;
 }
 
 .message {
     font-weight: bold;
-    color: red;
     justify-content: center;
     align-items: center;
     margin-bottom: 20px;
@@ -71,3 +79,18 @@
     opacity: 0;
     display: none;
 }
+
+.win {
+    color: red;
+}
+
+.tie {
+    color: #0044c5;
+}
+
+select.error {
+    border-color: red;
+    color: red;
+}
+
+.hidden {display: none;}

@@ -17,7 +17,7 @@
 *
 */
 
-const GRID_LENGTH = 3;
+const GRID_LENGTH = 4;
 const COMPUTER_THINKING_TIME = 100;
 const RESULT_TIE = 3;
 
@@ -38,17 +38,7 @@ const turn = {
 };
 const grid = [];
 const uncheckedBoxes = [];
-
-const criticalPaths = [
-  [0,1,2],
-  [3,4,5],
-  [6,7,8],
-  [0,3,6],
-  [1,4,7],
-  [2,5,8],
-  [0,4,8],
-  [2,4,6]
-];
+const criticalPaths = getCriticalPaths(GRID_LENGTH);
 
 // elements
 const overlay = document.getElementById('overlay');
@@ -148,10 +138,10 @@ function turnChangeHandler(curTurn) {
     if(curTurn == computer) {
         overlay.style.display = 'block';
         var criticalBox = findCriticalBox(computer);
-        if(!criticalBox) {
+        if(criticalBox == undefined) {
             criticalBox = findCriticalBox(gamer);
         }
-        if(!criticalBox) {
+        if(criticalBox == undefined) {
             var randomBoxNumber = Math.floor(Math.random() * uncheckedBoxes.length);
             criticalBox = uncheckedBoxes[randomBoxNumber];
         }
@@ -166,45 +156,20 @@ function turnChangeHandler(curTurn) {
 }
 
 function checkForResult() {
-    let i, j;
-    for (i = 0;i < GRID_LENGTH; i++) {
-        let score = 0;
-        for (j = 0;j < GRID_LENGTH; j++) {
-            if(grid[i][j] == 0) {score = 0;break;}
-            score += grid[i][j];
+    let startIndex, hasWinner;
+    let i,j;
+    let boxes = document.getElementsByClassName("box");
+    for(i in criticalPaths) {
+        startIndex = criticalPaths[i][0];
+        if(boxes[startIndex].textContent == "") continue;
+        for(j = 1; j < GRID_LENGTH; j++) {
+            if(boxes[criticalPaths[i][j]].textContent != boxes[startIndex].textContent) break;
         }
-        if(score != 0 && score % 3 == 0) {
-            return grid[i][j-1];
-        }
-    }
 
-    for (j = 0;j < GRID_LENGTH; j++) {
-        let score = 0;
-        for (i = 0;i < GRID_LENGTH; i++) {
-            if(grid[i][j] == 0) {score = 0;break;}
-            score += grid[i][j];
+        if( j == GRID_LENGTH) {
+            winningPlayer = boxes[startIndex].textContent;
+            return playerNumbers[winningPlayer];
         }
-        if(score != 0 && score % 3 == 0) {
-            return grid[i-1][j];
-        }
-    }
-
-    let score = 0;
-    for (i=0,j = 0; i < GRID_LENGTH; i++,j++) {
-        if(grid[i][j] == 0) {score = 0;break;}
-        score += grid[i][j];
-    }
-    if(score != 0 && score % 3 == 0) {
-        return grid[0][0];
-    }
-
-    score = 0;
-    for (i=0,j = GRID_LENGTH-1; i < GRID_LENGTH; i++,j--) {
-        if(grid[i][j] == 0) {score = 0;break;}
-        score += grid[i][j];
-    }
-    if(score != 0 && score % 3 == 0) {
-        return grid[0][GRID_LENGTH-1];
     }
 
     if(uncheckedBoxes.length == 0) {
@@ -296,6 +261,39 @@ function findCriticalBox(player) {
 
 function arraydiff(array1, array2) {
     return array1.filter(x => array2.indexOf(x) == -1);
+}
+
+function getCriticalPaths(gridSize) {
+    let i,j,tempArray;
+    const criticalPaths = [];
+    for(i = 0; i < gridSize; i++) {
+        tempArray = [];
+        for(j = 0; j < gridSize; j++) {
+            tempArray.push(i * gridSize + j);
+        }
+        criticalPaths.push(tempArray);
+    }
+    for(i = 0; i < gridSize; i++) {
+        tempArray = [];
+        for(j = 0; j < gridSize; j++) {
+            tempArray.push(i + j * gridSize);
+        }
+        criticalPaths.push(tempArray);
+    }
+
+    tempArray = [];
+    for(i = 0,j = 0; i < gridSize; i++,j++) {
+        tempArray.push(i * gridSize + j);
+    }
+    criticalPaths.push(tempArray);
+
+    tempArray = [];
+    for(i = 0,j = gridSize - 1; i < gridSize; i++,j--) {
+        tempArray.push(i * gridSize + j);
+    }
+    criticalPaths.push(tempArray);
+
+    return criticalPaths;
 }
 
 startGame();

@@ -17,9 +17,10 @@
 *
 */
 
-const GRID_LENGTH = 4;
+const GRID_LENGTH = 3;
 const COMPUTER_THINKING_TIME = 100;
 const RESULT_TIE = 3;
+const MIN_BOX_TO_SKIP_FOR_RESULT = (GRID_LENGTH - 1)*2;
 
 let gamer = 'X';
 let computer = 'O';
@@ -156,6 +157,11 @@ function turnChangeHandler(curTurn) {
 }
 
 function checkForResult() {
+    let checkedBoxes = GRID_LENGTH * GRID_LENGTH - uncheckedBoxes.length;
+    if(checkedBoxes <= MIN_BOX_TO_SKIP_FOR_RESULT ) {
+        return 0;
+    }
+
     let startIndex, hasWinner;
     let i,j;
     let boxes = document.getElementsByClassName("box");
